@@ -26,7 +26,7 @@ namespace PeerJs.Helpers
                 return Task.CompletedTask;
             }
             
-            return socket.CloseAsync(WebSocketCloseStatus.Empty, null, CancellationToken.None);
+            return socket.CloseAsync(WebSocketCloseStatus.Empty, null!, CancellationToken.None);
         }
 
         private static byte[] GetSerializedMessage(Message msg)
