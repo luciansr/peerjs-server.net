@@ -59,7 +59,7 @@ namespace PeerJs
             {
                 if (credentials.Token != client.GetToken())
                 {
-                    await socket.SendMessageAsync(Message.Create(MessageType.IdTaken, "Id is already used!"));
+                    await socket.SendMessageAsync(Message.Create(MessageType.IdTaken, "Id is already used!"), cancellationToken);
 
                     await socket.CloseAsync(Errors.InvalidToken);
 
@@ -71,7 +71,6 @@ namespace PeerJs
                 client.SetSocket(socket);
 
                 // TODO send queued messages
-
             }
             else
             {
@@ -81,10 +80,12 @@ namespace PeerJs
 
                 realm.SetClient(client);
 
-                await client.SendAsync(new Message
-                {
-                    Type = MessageType.Open
-                }, cancellationToken);
+                await client.SendAsync(
+                    new Message
+                    {
+                        Type = MessageType.Open
+                    },
+                    cancellationToken);
             }
 
             // listen for incoming messages
@@ -99,37 +100,35 @@ namespace PeerJs
         private async Task AwaitReceiveAsync(IClient client, IRealm realm, CancellationToken cancellationToken = default)
         {
             var socket = client.GetSocket();
-
-            var buffer = new ArraySegment<byte>(new byte[1024 * 16]);
+            var clientBuffer = WebSocket.CreateClientBuffer(1024 * 16, 1024 * 16);
 
             WebSocketReceiveResult result;
 
             do
             {
-                var (readResult, message) = await ReadAsync(socket, buffer, cancellationToken);
+                var (readResult, message) = await ReadAsync(socket, clientBuffer, cancellationToken);
 
                 await HandleMessageAsync(client, message, realm, cancellationToken);
 
                 result = readResult;
-            }
-            while (!result.CloseStatus.HasValue);
+            } while (!result.CloseStatus.HasValue);
 
-            await socket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, cancellationToken);
+            if (socket.State != WebSocketState.Closed && socket.State != WebSocketState.Aborted)
+            {
+                await socket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, cancellationToken);
+            }
         }
 
-        private async Task<(WebSocketReceiveResult, string)> ReadAsync(WebSocket socket, ArraySegment<byte> buffer, CancellationToken cancellationToken = default)
+        private async Task<(WebSocketReceiveResult, string)> ReadAsync(WebSocket socket, ArraySegment<byte> clientBuffer, CancellationToken cancellationToken = default)
         {
             WebSocketReceiveResult result;
-
             using var ms = new MemoryStream();
 
             do
             {
-                result = await socket.ReceiveAsync(buffer, cancellationToken);
-
-                ms.Write(buffer.Array, buffer.Offset, result.Count);
-            }
-            while (!result.EndOfMessage);
+                result = await socket.ReceiveAsync(clientBuffer, cancellationToken);
+                await ms.WriteAsync(clientBuffer.Array, clientBuffer.Offset, result.Count, cancellationToken);
+            } while (!result.EndOfMessage);
 
             ms.Seek(0, SeekOrigin.Begin);
 
@@ -137,7 +136,7 @@ namespace PeerJs
             {
                 using var reader = new StreamReader(ms, Encoding.UTF8);
 
-                return (result, reader.ReadToEnd());
+                return (result, await reader.ReadToEndAsync());
             }
 
             return (result, string.Empty);

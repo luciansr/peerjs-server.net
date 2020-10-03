@@ -19,12 +19,14 @@ namespace PeerJs.Helpers
 
         public static Task CloseAsync(this WebSocket socket, string description)
         {
-            if (socket == null)
+            if (socket == null 
+                || socket.State == WebSocketState.Closed 
+                || socket.State == WebSocketState.Aborted)
             {
                 return Task.CompletedTask;
             }
-
-            return socket.CloseAsync(WebSocketCloseStatus.Empty, description, CancellationToken.None);
+            
+            return socket.CloseAsync(WebSocketCloseStatus.Empty, null, CancellationToken.None);
         }
 
         private static byte[] GetSerializedMessage(Message msg)

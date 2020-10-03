@@ -51,13 +51,12 @@ namespace PeerJs.Middleware
                 return;
             }
 
-            WebSocket socket = null;
+            using var socket = await context.WebSockets.AcceptWebSocketAsync();
 
             try
             {
                 var requestCompletedTcs = new TaskCompletionSource<object>();
 
-                socket = await context.WebSockets.AcceptWebSocketAsync();
 
                 var credentials = GetCredentials(context.Request.Query);
 
@@ -80,25 +79,19 @@ namespace PeerJs.Middleware
         private static IClientCredentals GetCredentials(IQueryCollection queryString)
         {
             return new ClientCredentials(
-                clientId: GetQueryStringValue(queryString, "id", createIfEmpty: false),
+                clientId: GetQueryStringValue(queryString, "id"),
                 token: GetQueryStringValue(queryString, "token"),
                 key: GetQueryStringValue(queryString, "key"));
         }
 
-        private static string GetQueryStringValue(IQueryCollection queryString, string key, bool createIfEmpty = false)
+        private static string GetQueryStringValue(IQueryCollection queryString, string key)
         {
-            var result = string.Empty;
             if (queryString.TryGetValue(key, out var value))
             {
-                result = value.ToString();
+                return  value.ToString();
             }
 
-            if (string.IsNullOrEmpty(result) && createIfEmpty)
-            {
-                result = Guid.NewGuid().ToString("N");
-            }
-
-            return result;
+            return string.Empty;
         }
     }
 }

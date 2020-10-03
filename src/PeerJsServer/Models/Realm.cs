@@ -134,11 +134,9 @@ namespace PeerJs.Models
                 try
                 {
                     message.Source = client.GetId();
-                    // if (message.Type == "OFFER")
-                    // {
-                    //     Console.WriteLine($"OFFER {message.Source} - {message.Destination}");
-                    // }
-
+#if DEBUG
+                    Console.WriteLine($"{message.Type} {message.Source} - {message.Destination}");
+#endif
                     await destinationClient.SendAsync(message, cancellationToken);
                 }
                 catch (Exception ex)
