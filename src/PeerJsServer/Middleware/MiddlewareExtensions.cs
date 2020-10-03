@@ -1,7 +1,7 @@
-﻿using PeerJs;
-using System;
+﻿using System;
+using Microsoft.AspNetCore.Builder;
 
-namespace Microsoft.AspNetCore.Builder
+namespace PeerJs.Middleware
 {
     public static class MiddlewareExtensions
     {

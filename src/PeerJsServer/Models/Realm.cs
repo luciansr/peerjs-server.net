@@ -3,8 +3,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using PeerJs.Helpers;
 
-namespace PeerJs
+namespace PeerJs.Models
 {
     public interface IRealm
     {
@@ -42,21 +43,21 @@ namespace PeerJs
 
         public void AddMessageToQueue(string clientId, Message msg)
         {
-            IMessageQueue messageQueue = null;
-
-            if (!_messageQueues.TryGetValue(clientId, out var messageQeueue))
+            if (_messageQueues.TryGetValue(clientId, out var messageQueue))
             {
-                messageQueue = new MessageQueue();
-
-                _messageQueues.TryAdd(clientId, messageQeueue);
+                messageQueue.Enqueue(msg);
             }
-
-            messageQueue.Enqueue(msg);
+            else
+            {
+                var  clientQueue = new MessageQueue();
+                clientQueue.Enqueue(msg);
+                _messageQueues.TryAdd(clientId, clientQueue);
+            }
         }
 
         public void ClearMessageQueue(string clientId)
         {
-            _messageQueues.TryRemove(clientId, out var _);
+            _messageQueues.TryRemove(clientId, out _);
         }
 
         public IMessageQueue GetMessageQueueById(string clientId)
@@ -86,7 +87,7 @@ namespace PeerJs
 
         public bool RemoveClientById(string clientId)
         {
-            return _clients.TryRemove(clientId, out var _);
+            return _clients.TryRemove(clientId, out _);
         }
 
         public string GenerateClientId()
@@ -133,6 +134,10 @@ namespace PeerJs
                 try
                 {
                     message.Source = client.GetId();
+                    // if (message.Type == "OFFER")
+                    // {
+                    //     Console.WriteLine($"OFFER {message.Source} - {message.Destination}");
+                    // }
 
                     await destinationClient.SendAsync(message, cancellationToken);
                 }
@@ -160,13 +165,13 @@ namespace PeerJs
                     }, cancellationToken);
                 }
             }
-            else
-            {
-                if (message.ShouldQueue())
-                {
-                    AddMessageToQueue(message.Destination, message);
-                }
-            }
+            // else
+            // {
+            //     // if (message.ShouldEnqueue())
+            //     // {
+            //     //     AddMessageToQueue(message.Destination, message);
+            //     // }
+            // }
         }
 
         private async Task LeaveAsync(IClient client, Message message, CancellationToken cancellationToken = default)

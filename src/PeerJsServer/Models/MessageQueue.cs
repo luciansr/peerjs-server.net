@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
-namespace PeerJs
+namespace PeerJs.Models
 {
     public interface IMessageQueue
     {

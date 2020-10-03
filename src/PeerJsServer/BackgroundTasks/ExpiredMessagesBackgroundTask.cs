@@ -1,34 +1,47 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using PeerJs.Models;
 
-namespace PeerJs
+namespace PeerJs.BackgroundTasks
 {
-    public class ExpiredMessagesBackgroundTask : TimedBackgroundTask
+    public class ExpiredMessagesBackgroundTask : BackgroundService
     {
         private readonly ILogger<ExpiredMessagesBackgroundTask> _logger;
+        private readonly IPeerJsServer _peerJsServer;
 
         public ExpiredMessagesBackgroundTask(
-            IServiceProvider services,
-            ILogger<ExpiredMessagesBackgroundTask> logger)
-            : base(services, TimeSpan.FromSeconds(2))
+            ILogger<ExpiredMessagesBackgroundTask> logger,
+            IPeerJsServer peerJsServer)
         {
             _logger = logger;
+            _peerJsServer = peerJsServer;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            using var scope = Services.CreateScope();
-            var server = scope.ServiceProvider.GetRequiredService<IPeerJsServer>();
-
-            var realms = server.GetRealms();
-
-            foreach (var realm in realms)
+            while (!stoppingToken.IsCancellationRequested)
             {
-                await PruneExpiredMessagesAsync(realm.Value, stoppingToken);
+                try
+                {
+                    var realms = _peerJsServer.GetRealms();
+
+                    foreach (var realm in realms)
+                    {
+                        await PruneExpiredMessagesAsync(realm.Value, stoppingToken);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+                finally
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(300), stoppingToken);
+                }
             }
         }
 
@@ -37,7 +50,7 @@ namespace PeerJs
             var clientIds = realm.GetClientIdsWithQueue();
 
             var now = DateTime.UtcNow;
-            var maxDiff = TimeSpan.FromSeconds(10);
+            var maxDiff = TimeSpan.FromSeconds(300);
 
             var seenMap = new Dictionary<string, bool>();
 
@@ -76,7 +89,10 @@ namespace PeerJs
                 realm.ClearMessageQueue(clientId);
             }
 
-            _logger.LogInformation($"Pruned expired messages for {seenMap.Keys.Count} peers.");
+            if (seenMap.Keys.Count > 0)
+            {
+                _logger.LogInformation($"Pruned expired messages for {seenMap.Keys.Count} peers.");
+            }
         }
     }
 }

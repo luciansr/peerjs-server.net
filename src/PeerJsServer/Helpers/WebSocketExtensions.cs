@@ -1,11 +1,12 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using PeerJs.Models;
 
-namespace PeerJs
+namespace PeerJs.Helpers
 {
     public static class WebSocketExtensions
     {

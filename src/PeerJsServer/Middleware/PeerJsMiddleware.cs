@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Net.WebSockets;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using PeerJs.Helpers;
+using PeerJs.Models;
 
-namespace PeerJs
+namespace PeerJs.Middleware
 {
     public class PeerJsMiddleware
     {
@@ -25,6 +27,14 @@ namespace PeerJs
         public async Task Invoke(HttpContext context)
         {
             var path = context.Request.Path.ToString();
+
+            if (path.EndsWith("/api/peerjs/id"))
+            {
+                context.Response.ContentType = "application/json";
+                context.Response.StatusCode = 200;
+                await context.Response.WriteAsync(Guid.NewGuid().ToString());
+                return;
+            }
 
             if (!path.Contains("/peerjs"))
             {
@@ -70,14 +80,25 @@ namespace PeerJs
         private static IClientCredentals GetCredentials(IQueryCollection queryString)
         {
             return new ClientCredentials(
-                clientId: GetQueryStringValue(queryString, "id"),
+                clientId: GetQueryStringValue(queryString, "id", createIfEmpty: false),
                 token: GetQueryStringValue(queryString, "token"),
                 key: GetQueryStringValue(queryString, "key"));
         }
 
-        private static string GetQueryStringValue(IQueryCollection queryString, string key)
+        private static string GetQueryStringValue(IQueryCollection queryString, string key, bool createIfEmpty = false)
         {
-            return queryString.TryGetValue(key, out var value) ? value.ToString() : string.Empty;
+            var result = string.Empty;
+            if (queryString.TryGetValue(key, out var value))
+            {
+                result = value.ToString();
+            }
+
+            if (string.IsNullOrEmpty(result) && createIfEmpty)
+            {
+                result = Guid.NewGuid().ToString("N");
+            }
+
+            return result;
         }
     }
 }

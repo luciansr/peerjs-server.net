@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using PeerJs;
+using PeerJs.BackgroundTasks;
 
-namespace Microsoft.AspNetCore.Builder
+namespace PeerJs.Middleware
 {
     public static class ServiceCollectionExtensions
     {

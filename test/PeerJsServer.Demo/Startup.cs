@@ -3,11 +3,13 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using PeerJs.Middleware;
 
 namespace PeerJsServer.Demo
 {
     public class Startup
     {
+        readonly string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -17,7 +19,19 @@ namespace PeerJsServer.Demo
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddRazorPages();
+            services.AddCors(
+                options =>
+                {
+                    options.AddPolicy(
+                        name: MyAllowSpecificOrigins,
+                        builder =>
+                        {
+                            builder.WithOrigins(
+                                    "*")
+                                .AllowAnyHeader()
+                                .AllowAnyMethod();
+                        });
+                });
 
             // register PeerJs Server dependencies
             services.AddPeerJsServer();
@@ -36,15 +50,15 @@ namespace PeerJsServer.Demo
             }
 
             app.UseHttpsRedirection();
-            app.UseStaticFiles();
 
             app.UseRouting();
+            app.UseCors(MyAllowSpecificOrigins);
 
-            app.UseAuthorization();
+            // app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapRazorPages();
+                // endpoints.MapRazorPages();
             });
 
             // enable PeerJs Server middleware

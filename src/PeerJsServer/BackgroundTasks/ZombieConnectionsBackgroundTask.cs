@@ -1,34 +1,47 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using PeerJs.Helpers;
+using PeerJs.Models;
 
-namespace PeerJs
+namespace PeerJs.BackgroundTasks
 {
-    public class ZombieConnectionsBackgroundTask : TimedBackgroundTask
+    public class ZombieConnectionsBackgroundTask : BackgroundService
     {
         private readonly ILogger<ExpiredMessagesBackgroundTask> _logger;
-        private const int DefaultCheckInterval = 300;
+        private readonly IPeerJsServer _peerJsServer;
 
         public ZombieConnectionsBackgroundTask(
-            IServiceProvider services,
-            ILogger<ExpiredMessagesBackgroundTask> logger)
-            : base(services, TimeSpan.FromSeconds(DefaultCheckInterval))
+            ILogger<ExpiredMessagesBackgroundTask> logger,
+            IPeerJsServer peerJsServer)
         {
             _logger = logger;
+            _peerJsServer = peerJsServer;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            using var scope = Services.CreateScope();
-            var server = scope.ServiceProvider.GetRequiredService<IPeerJsServer>();
-
-            var realms = server.GetRealms();
-
-            foreach (var realm in realms)
+            while (!stoppingToken.IsCancellationRequested)
             {
-                await PruneZombieConnectionsAsync(realm.Value);
+                try
+                {
+                    var realms = _peerJsServer.GetRealms();
+
+                    foreach (var realm in realms)
+                    {
+                        await PruneZombieConnectionsAsync(realm.Value);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+                finally
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(300), stoppingToken);
+                }
             }
         }
 
@@ -55,7 +68,10 @@ namespace PeerJs
 
                 try
                 {
-                    await socket?.CloseAsync($"Zombie connection, time since last heartbeat: {timeSinceLastHeartbeat.TotalSeconds}s");
+                    if(socket != null)
+                    {
+                        await socket.CloseAsync($"Zombie connection, time since last heartbeat: {timeSinceLastHeartbeat.TotalSeconds}s");
+                    }
                 }
                 finally
                 {
@@ -68,7 +84,10 @@ namespace PeerJs
                 count++;
             }
 
-            _logger.LogInformation($"Pruned zombie connections for {count} peers.");
+            if (count > 0)
+            {
+                _logger.LogInformation($"Pruned zombie connections for {count} peers.");
+            }
         }
     }
 }

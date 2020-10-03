@@ -7,6 +7,8 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using PeerJs.Helpers;
+using PeerJs.Models;
 
 namespace PeerJs
 {
@@ -81,7 +83,7 @@ namespace PeerJs
 
                 await client.SendAsync(new Message
                 {
-                    Type = MessageType.Open,
+                    Type = MessageType.Open
                 }, cancellationToken);
             }
 

@@ -1,4 +1,6 @@
-﻿namespace PeerJs
+﻿using PeerJs.Models;
+
+namespace PeerJs
 {
     public static class Errors
     {
@@ -21,7 +23,7 @@
         public const string Leave = "LEAVE"; // Another peer has closed its connection to this peer.
         public const string Expire = "EXPIRE"; // The offer sent to a peer has expired without response.
     
-        public static bool ShouldQueue(this Message message)
+        public static bool ShouldEnqueue(this Message message)
         {
             return message.Type != Leave && message.Type != Expire && !string.IsNullOrEmpty(message.Destination);
         }

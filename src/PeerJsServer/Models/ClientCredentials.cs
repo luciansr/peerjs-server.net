@@ -1,4 +1,4 @@
-﻿namespace PeerJs
+﻿namespace PeerJs.Models
 {
     public interface IClientCredentals
     {

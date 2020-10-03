@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace PeerJs
+namespace PeerJs.Models
 {
     public class Message
     {

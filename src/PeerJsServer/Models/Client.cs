@@ -2,8 +2,9 @@
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
+using PeerJs.Helpers;
 
-namespace PeerJs
+namespace PeerJs.Models
 {
     public interface IClient
     {
