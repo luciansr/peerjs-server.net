@@ -15,7 +15,7 @@ namespace PeerJsServer.Demo
             Configuration = configuration;
         }
 
-        public IConfiguration Configuration { get; }
+        private IConfiguration Configuration { get; }
 
         public void ConfigureServices(IServiceCollection services)
         {
@@ -53,13 +53,6 @@ namespace PeerJsServer.Demo
 
             app.UseRouting();
             app.UseCors(MyAllowSpecificOrigins);
-
-            // app.UseAuthorization();
-
-            app.UseEndpoints(endpoints =>
-            {
-                // endpoints.MapRazorPages();
-            });
 
             // enable PeerJs Server middleware
             app.UsePeerJsServer();
